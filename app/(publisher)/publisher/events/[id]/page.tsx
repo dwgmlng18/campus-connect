@@ -23,7 +23,7 @@ export default async function PublisherEventDetailPage({ params }: PageProps) {
   const supabaseAdmin = await createAdminClient();
 
   // Ambil detail event dengan admin client (bypassing RLS select loop)
-  const { data: event, error } = await supabaseAdmin
+  const { data: rawEvent, error } = await supabaseAdmin
     .from("events")
     .select(`
       id,
@@ -41,9 +41,11 @@ export default async function PublisherEventDetailPage({ params }: PageProps) {
     .eq("id", id)
     .single();
 
-  if (error || !event) {
+  if (error || !rawEvent) {
     notFound();
   }
+
+  const event = rawEvent as any;
 
   // Pastikan hanya pembuat event yang bisa mengakses detail di dashboard publisher
   if (event.created_by !== user.id) {

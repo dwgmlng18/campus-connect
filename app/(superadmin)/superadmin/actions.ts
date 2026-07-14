@@ -31,7 +31,7 @@ export async function approvePublisher(publisherId: string): Promise<ActionRespo
     });
 
     revalidatePath("/superadmin/dashboard");
-    revalidatePath("/superadmin/publishers");
+    revalidatePath("/superadmin/users");
     return { success: true, message: "Akun publisher berhasil disetujui." };
   } catch (error: any) {
     return { success: false, message: error.message || "Terjadi kesalahan sistem." };
@@ -64,7 +64,7 @@ export async function rejectPublisher(publisherId: string, reason: string): Prom
     });
 
     revalidatePath("/superadmin/dashboard");
-    revalidatePath("/superadmin/publishers");
+    revalidatePath("/superadmin/users");
     return { success: true, message: "Pendaftaran akun publisher telah ditolak." };
   } catch (error: any) {
     return { success: false, message: error.message || "Terjadi kesalahan sistem." };
@@ -552,19 +552,19 @@ export async function superadminUpdatePublisher(publisherId: string, formData: F
 }
 
 /**
- * Menghapus akun Publisher secara permanen
+ * Menghapus akun pengguna (Superadmin/Publisher) secara permanen
  */
-export async function superadminDeletePublisher(publisherId: string): Promise<ActionResponse> {
+export async function superadminDeleteUser(userId: string): Promise<ActionResponse> {
   try {
     const supabaseAdmin = await createAdminClient();
 
     // Hapus dari auth (akan men-cascade profile & users jika FK di set cascade)
-    const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(publisherId);
+    const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId);
 
     if (authError) {
       // Hapus manual jika cascade gagal
-      await supabaseAdmin.from("profiles").delete().eq("user_id", publisherId);
-      const { error: userError } = await supabaseAdmin.from("users").delete().eq("id", publisherId);
+      await supabaseAdmin.from("profiles").delete().eq("user_id", userId);
+      const { error: userError } = await supabaseAdmin.from("users").delete().eq("id", userId);
       
       if (userError) {
         return { success: false, message: `Gagal menghapus user: ${userError.message}` };
@@ -572,11 +572,168 @@ export async function superadminDeletePublisher(publisherId: string): Promise<Ac
     }
 
     revalidatePath("/superadmin/dashboard");
-    revalidatePath("/superadmin/publishers");
+    revalidatePath("/superadmin/users");
     revalidatePath("/events");
     revalidatePath("/");
 
-    return { success: true, message: "Akun publisher berhasil dihapus secara permanen dari sistem." };
+    return { success: true, message: "Akun pengguna berhasil dihapus secara permanen dari sistem." };
+  } catch (error: any) {
+    return { success: false, message: error.message || "Terjadi kesalahan sistem." };
+  }
+}
+
+/**
+ * Membuat akun baru (Superadmin atau Publisher) langsung disetujui oleh Admin
+ */
+export async function superadminCreateUser(formData: FormData): Promise<ActionResponse> {
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
+  const role = formData.get("role") as "superadmin" | "publisher";
+  
+  // Bidang spesifik Publisher
+  const orgName = formData.get("org_name") as string;
+  const orgAbbreviation = formData.get("org_abbreviation") as string;
+  const phone = formData.get("phone") as string;
+  const address = formData.get("address") as string;
+  const logoFile = formData.get("org_logo") as File;
+
+  if (!email || !password || !role) {
+    return { success: false, message: "Email, Password, dan Role wajib diisi." };
+  }
+
+  if (role === "publisher" && !orgName) {
+    return { success: false, message: "Nama Instansi wajib diisi untuk akun Publisher." };
+  }
+
+  try {
+    let orgLogoUrl = "";
+    let finalOrgName = role === "superadmin" ? "Administrator" : orgName;
+
+    const supabaseAdmin = await createAdminClient();
+
+    if (role === "publisher") {
+      if (logoFile && logoFile.size > 0) {
+        orgLogoUrl = await uploadToCloudinary(logoFile);
+      }
+    }
+
+    // Daftarkan ke auth
+    const { data, error } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: {
+        role,
+        status: "approve", // langsung aktif disetujui
+        org_name: finalOrgName,
+        org_logo: orgLogoUrl || null,
+        org_abbreviation: role === "publisher" ? orgAbbreviation : null,
+        phone: role === "publisher" ? phone : null,
+        address: role === "publisher" ? address : null,
+      },
+    });
+
+    if (error) {
+      let friendlyMessage = error.message;
+      if (error.message.includes("already registered")) {
+        friendlyMessage = "Email sudah terdaftar.";
+      }
+      return { success: false, message: `Gagal membuat akun: ${friendlyMessage}` };
+    }
+
+    if (data.user) {
+      // Set status ke approve di tabel public.users
+      await supabaseAdmin
+        .from("users")
+        .update({ status: "approve" })
+        .eq("id", data.user.id);
+    }
+
+    revalidatePath("/superadmin/dashboard");
+    revalidatePath("/superadmin/users");
+
+    return { success: true, message: `Akun ${role === "superadmin" ? "Superadmin" : "Publisher"} baru berhasil dibuat.` };
+  } catch (error: any) {
+    return { success: false, message: error.message || "Terjadi kesalahan sistem." };
+  }
+}
+
+/**
+ * Mengubah data profil, role, dan status pengguna oleh Admin
+ */
+export async function superadminUpdateUser(userId: string, formData: FormData): Promise<ActionResponse> {
+  const role = formData.get("role") as "superadmin" | "publisher";
+  const orgName = formData.get("org_name") as string;
+  const orgAbbreviation = formData.get("org_abbreviation") as string;
+  const phone = formData.get("phone") as string;
+  const address = formData.get("address") as string;
+  const logoFile = formData.get("org_logo") as File;
+  const currentLogoUrl = formData.get("current_org_logo") as string;
+  const status = formData.get("status") as "pending" | "approve" | "reject";
+  const rejectReason = formData.get("reject_reason") as string;
+
+  const finalOrgName = role === "superadmin" ? (orgName || "Administrator") : orgName;
+
+  if (role === "publisher" && !orgName) {
+    return { success: false, message: "Nama Instansi wajib diisi untuk akun Publisher." };
+  }
+
+  try {
+    const supabaseAdmin = await createAdminClient();
+
+    let logoUrl = currentLogoUrl;
+    if (role === "publisher" && logoFile && logoFile.size > 0) {
+      logoUrl = await uploadToCloudinary(logoFile);
+    }
+
+    // 1. Update tabel public.profiles
+    const { error: profileError } = await supabaseAdmin
+      .from("profiles")
+      .update({
+        org_name: finalOrgName,
+        org_logo: role === "publisher" ? (logoUrl || null) : null,
+        org_abbreviation: role === "publisher" ? (orgAbbreviation || null) : null,
+        phone: role === "publisher" ? (phone || null) : null,
+        address: role === "publisher" ? (address || null) : null,
+      })
+      .eq("user_id", userId);
+
+    if (profileError) {
+      return { success: false, message: `Gagal memperbarui profil: ${profileError.message}` };
+    }
+
+    // 2. Update status di tabel public.users
+    const { error: userError } = await supabaseAdmin
+      .from("users")
+      .update({
+        status,
+        reject_reason: status === "reject" ? rejectReason : null,
+      })
+      .eq("id", userId);
+
+    if (userError) {
+      return { success: false, message: `Gagal memperbarui status user: ${userError.message}` };
+    }
+
+    // 3. Sinkronisasikan metadata auth user
+    await supabaseAdmin.auth.admin.updateUserById(userId, {
+      user_metadata: {
+        status,
+        role,
+        org_name: finalOrgName,
+        org_logo: role === "publisher" ? logoUrl : null,
+        org_abbreviation: role === "publisher" ? orgAbbreviation : null,
+        phone: role === "publisher" ? phone : null,
+        address: role === "publisher" ? address : null,
+      }
+    });
+
+    revalidatePath("/superadmin/dashboard");
+    revalidatePath("/superadmin/users");
+    revalidatePath("/events");
+    revalidatePath("/");
+
+    return { success: true, message: "Data pengguna berhasil diperbarui." };
   } catch (error: any) {
     return { success: false, message: error.message || "Terjadi kesalahan sistem." };
   }

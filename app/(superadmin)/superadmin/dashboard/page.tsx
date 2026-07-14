@@ -152,7 +152,7 @@ export default async function SuperadminDashboardPage() {
                 <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">Menunggu Persetujuan Akun</h3>
                 <p className="text-xs text-slate-500 mt-1">Daftar publisher baru yang meminta persetujuan registrasi.</p>
               </div>
-              <Link href="/superadmin/publishers" className="text-xs font-semibold text-primary-600 hover:text-primary-700 dark:text-primary-400 transition">
+              <Link href="/superadmin/users" className="text-xs font-semibold text-primary-600 hover:text-primary-700 dark:text-primary-400 transition">
                 Lihat Semua
               </Link>
             </div>
@@ -170,7 +170,7 @@ export default async function SuperadminDashboardPage() {
                       </p>
                     </div>
                     <Link
-                      href="/superadmin/publishers"
+                      href="/superadmin/users"
                       className="px-3 py-1.5 text-xs font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-lg shadow-sm transition"
                     >
                       Tinjau

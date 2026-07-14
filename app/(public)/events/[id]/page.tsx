@@ -19,7 +19,7 @@ export default async function EventDetailPage({ params }: PageProps) {
   const supabaseAdmin = await createAdminClient();
 
   // Ambil detail event dengan admin client (bypassing RLS select loop)
-  const { data: event, error } = await supabaseAdmin
+  const { data: rawEvent, error } = await supabaseAdmin
     .from("events")
     .select(`
       id,
@@ -39,9 +39,11 @@ export default async function EventDetailPage({ params }: PageProps) {
     .eq("id", id)
     .single();
 
-  if (error || !event) {
+  if (error || !rawEvent) {
     notFound();
   }
+
+  const event = rawEvent as any;
 
   // Cari status review terbaru
   const getLatestApproval = (approvalsList: any[]) => {
