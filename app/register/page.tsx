@@ -1,16 +1,27 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useState, useTransition, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { registerPublisher } from "@/app/actions/auth";
+import { registerPublisher } from "./actions";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [logoName, setLogoName] = useState<string>("");
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Efek untuk scroll otomatis ke atas ketika ada pesan sukses/error
+  React.useEffect(() => {
+    if (error || success) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [error, success]);
+
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -20,6 +31,7 @@ export default function RegisterPage() {
         setError("Ukuran logo maksimal adalah 2MB.");
         e.target.value = "";
         setLogoName("");
+        setLogoPreview(null);
         return;
       }
       // Validasi format gambar
@@ -27,10 +39,24 @@ export default function RegisterPage() {
         setError("Format berkas harus berupa gambar.");
         e.target.value = "";
         setLogoName("");
+        setLogoPreview(null);
         return;
       }
       setError(null);
       setLogoName(file.name);
+      
+      // Buat URL blob preview lokal
+      const previewUrl = URL.createObjectURL(file);
+      setLogoPreview(previewUrl);
+    }
+  };
+
+  const handleCancelLogo = () => {
+    setLogoName("");
+    setLogoPreview(null);
+    setError(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
@@ -47,12 +73,18 @@ export default function RegisterPage() {
         setSuccess(res.message);
         // Reset form
         (e.target as HTMLFormElement).reset();
-        setLogoName("");
+        handleCancelLogo();
+        // Redirect ke halaman login setelah 2 detik
+        setTimeout(() => {
+          router.push("/login");
+        }, 2000);
       } else {
         setError(res.message);
       }
     });
   };
+
+
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 transition-colors duration-200">
@@ -111,14 +143,32 @@ export default function RegisterPage() {
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                   Password
                 </label>
-                <input
-                  name="password"
-                  type="password"
-                  required
-                  minLength={6}
-                  className="mt-1 block w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
-                  placeholder="Minimal 6 karakter"
-                />
+                <div className="mt-1 relative">
+                  <input
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    required
+                    minLength={6}
+                    className="block w-full pl-4 pr-10 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                    placeholder="Minimal 6 karakter"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition cursor-pointer"
+                  >
+                    {showPassword ? (
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
               </div>
 
               {/* Organization Info */}
@@ -182,27 +232,49 @@ export default function RegisterPage() {
                   Logo Instansi (Opsional)
                 </label>
                 <div className="flex items-center justify-center w-full">
-                  <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-primary-400 dark:hover:border-primary-600 rounded-xl cursor-pointer bg-slate-50 dark:bg-slate-900/50 transition">
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                      <svg className="w-8 h-8 mb-2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 px-4 text-center">
-                        {logoName ? (
-                          <span className="font-semibold text-slate-700 dark:text-slate-300">{logoName}</span>
-                        ) : (
-                          <span>Klik untuk unggah logo instansi (Maks 2MB, JPG/PNG)</span>
-                        )}
-                      </p>
+                  {logoPreview ? (
+                    <div className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={logoPreview}
+                          alt="Preview logo"
+                          className="w-14 h-14 rounded-xl object-cover border border-slate-200 dark:border-slate-850"
+                        />
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[200px] sm:max-w-xs">
+                            {logoName}
+                          </p>
+                          <p className="text-xs text-slate-400">Siap diunggah</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleCancelLogo}
+                        className="px-3 py-1.5 text-xs font-semibold text-red-600 hover:text-white hover:bg-red-600 border border-red-200 dark:border-red-800 rounded-lg transition cursor-pointer"
+                      >
+                        Batal Unggah
+                      </button>
                     </div>
-                    <input
-                      name="org_logo"
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleFileChange}
-                    />
-                  </label>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-primary-400 dark:hover:border-primary-600 rounded-xl cursor-pointer bg-slate-50 dark:bg-slate-900/50 transition">
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <svg className="w-8 h-8 mb-2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 px-4 text-center">
+                          <span>Klik untuk unggah logo instansi (Maks 2MB, JPG/PNG)</span>
+                        </p>
+                      </div>
+                      <input
+                        ref={fileInputRef}
+                        name="org_logo"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleFileChange}
+                      />
+                    </label>
+                  )}
                 </div>
               </div>
             </div>
