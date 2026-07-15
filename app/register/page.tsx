@@ -3,7 +3,6 @@
 import React, { useState, useTransition, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { registerPublisher } from "./actions";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -26,9 +25,9 @@ export default function RegisterPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      // Validasi ukuran berkas (maks 2MB)
-      if (file.size > 2 * 1024 * 1024) {
-        setError("Ukuran logo maksimal adalah 2MB.");
+      // Validasi ukuran berkas (maks 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError("Ukuran logo maksimal adalah 5MB.");
         e.target.value = "";
         setLogoName("");
         setLogoPreview(null);
@@ -68,18 +67,26 @@ export default function RegisterPage() {
     const formData = new FormData(e.currentTarget);
 
     startTransition(async () => {
-      const res = await registerPublisher(formData);
-      if (res.success) {
-        setSuccess(res.message);
-        // Reset form
-        (e.target as HTMLFormElement).reset();
-        handleCancelLogo();
-        // Redirect ke halaman login setelah 2 detik
-        setTimeout(() => {
-          router.push("/login");
-        }, 2000);
-      } else {
-        setError(res.message);
+      try {
+        const response = await fetch("/api/auth/register", {
+          method: "POST",
+          body: formData,
+        });
+        const res = await response.json();
+        if (res.success) {
+          setSuccess(res.message);
+          // Reset form
+          (e.target as HTMLFormElement).reset();
+          handleCancelLogo();
+          // Redirect ke halaman login setelah 2 detik
+          setTimeout(() => {
+            router.push("/login");
+          }, 2000);
+        } else {
+          setError(res.message || "Gagal mendaftar.");
+        }
+      } catch (err: any) {
+        setError("Terjadi kesalahan sistem saat mencoba mendaftar.");
       }
     });
   };
@@ -117,7 +124,7 @@ export default function RegisterPage() {
             </div>
           )}
 
-          <form className="space-y-6" onSubmit={handleSubmit}>
+          <form className="space-y-6" onSubmit={handleSubmit} encType="multipart/form-data">
             <div className="grid grid-cols-1 gap-y-6 sm:grid-cols-2 sm:gap-x-6">
               {/* Account Info */}
               <div className="sm:col-span-2">
@@ -232,8 +239,17 @@ export default function RegisterPage() {
                   Logo Instansi (Opsional)
                 </label>
                 <div className="flex items-center justify-center w-full">
+                  <input
+                    id="org_logo"
+                    ref={fileInputRef}
+                    name="org_logo"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
                   {logoPreview ? (
-                    <div className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex items-center justify-between gap-4">
+                    <div className="flex items-center justify-between p-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-900/30 w-full">
                       <div className="flex items-center gap-3">
                         <img
                           src={logoPreview}
@@ -256,23 +272,15 @@ export default function RegisterPage() {
                       </button>
                     </div>
                   ) : (
-                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-primary-400 dark:hover:border-primary-600 rounded-xl cursor-pointer bg-slate-50 dark:bg-slate-900/50 transition">
+                    <label htmlFor="org_logo" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-primary-400 dark:hover:border-primary-600 rounded-xl cursor-pointer bg-slate-50 dark:bg-slate-900/50 transition">
                       <div className="flex flex-col items-center justify-center pt-5 pb-6">
                         <svg className="w-8 h-8 mb-2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                         <p className="text-xs text-slate-500 dark:text-slate-400 px-4 text-center">
-                          <span>Klik untuk unggah logo instansi (Maks 2MB, JPG/PNG)</span>
+                          <span>Klik untuk unggah logo instansi (Maks 5MB, JPG/PNG)</span>
                         </p>
                       </div>
-                      <input
-                        ref={fileInputRef}
-                        name="org_logo"
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleFileChange}
-                      />
                     </label>
                   )}
                 </div>

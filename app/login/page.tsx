@@ -3,7 +3,6 @@
 import React, { useState, useTransition, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { loginUser } from "./actions";
 
 function LoginContent() {
   const router = useRouter();
@@ -38,14 +37,25 @@ function LoginContent() {
     setError(null);
 
     const formData = new FormData(e.currentTarget);
+    const email = formData.get("email");
+    const password = formData.get("password");
 
     startTransition(async () => {
-      const res = await loginUser(formData);
-      if (res.success && res.redirectTo) {
-        router.push(res.redirectTo);
-        router.refresh();
-      } else {
-        setError(res.message);
+      try {
+        const response = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+        const res = await response.json();
+        if (res.success && res.redirectTo) {
+          router.push(res.redirectTo);
+          router.refresh();
+        } else {
+          setError(res.message || "Gagal masuk.");
+        }
+      } catch (err: any) {
+        setError("Terjadi kesalahan sistem saat mencoba masuk.");
       }
     });
   };
