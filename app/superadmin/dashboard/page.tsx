@@ -7,6 +7,22 @@ export const revalidate = 0; // Data statistik harus selalu real-time
 export default async function SuperadminDashboardPage() {
   const supabaseAdmin = await createAdminClient();
 
+  const nowIso = new Date().toISOString();
+
+  // Auto-clean: Update status event yang sudah lewat menjadi 'inactive'
+  await supabaseAdmin
+    .from("events")
+    .update({ status: "inactive" })
+    .eq("status", "active")
+    .lt("end_date", nowIso);
+
+  await supabaseAdmin
+    .from("events")
+    .update({ status: "inactive" })
+    .eq("status", "active")
+    .is("end_date", null)
+    .lt("start_date", nowIso);
+
   // 1. Ambil data publisher
   const { data: users = [] } = await supabaseAdmin
     .from("users")

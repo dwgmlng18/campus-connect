@@ -16,6 +16,22 @@ export default async function PublisherEventsPage() {
 
   const supabaseAdmin = await createAdminClient();
 
+  const nowIso = new Date().toISOString();
+
+  // Auto-clean: Update status event yang sudah lewat menjadi 'inactive'
+  await supabaseAdmin
+    .from("events")
+    .update({ status: "inactive" })
+    .eq("status", "active")
+    .lt("end_date", nowIso);
+
+  await supabaseAdmin
+    .from("events")
+    .update({ status: "inactive" })
+    .eq("status", "active")
+    .is("end_date", null)
+    .lt("start_date", nowIso);
+
   // Ambil semua event milik publisher ini (menggunakan admin client untuk bypass RLS select loop)
   const { data: events = [] } = await supabaseAdmin
     .from("events")

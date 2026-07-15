@@ -15,6 +15,23 @@ export default async function SuperadminEventsPage() {
   }
 
   const supabaseAdmin = await createAdminClient();
+
+  const nowIso = new Date().toISOString();
+
+  // Auto-clean: Update status event yang sudah lewat menjadi 'inactive'
+  await supabaseAdmin
+    .from("events")
+    .update({ status: "inactive" })
+    .eq("status", "active")
+    .lt("end_date", nowIso);
+
+  await supabaseAdmin
+    .from("events")
+    .update({ status: "inactive" })
+    .eq("status", "active")
+    .is("end_date", null)
+    .lt("start_date", nowIso);
+
   // Ambil data semua event beserta data instansi penyelenggara dan riwayat persetujuannya
   const { data: rawEvents = [] } = await supabaseAdmin
     .from("events")

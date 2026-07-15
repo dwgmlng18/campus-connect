@@ -9,7 +9,25 @@ export default async function HomePage() {
   // Gunakan admin client untuk bypass RLS select loop pada data publik
   const supabaseAdmin = await createAdminClient();
 
-  // Ambil event dari database dengan kueri status active
+  const nowIso = new Date().toISOString();
+
+  // 1. Auto-clean: Update status event yang sudah lewat menjadi 'inactive'
+  // Update jika end_date kurang dari sekarang
+  await supabaseAdmin
+    .from("events")
+    .update({ status: "inactive" })
+    .eq("status", "active")
+    .lt("end_date", nowIso);
+
+  // Update jika end_date null dan start_date kurang dari sekarang
+  await supabaseAdmin
+    .from("events")
+    .update({ status: "inactive" })
+    .eq("status", "active")
+    .is("end_date", null)
+    .lt("start_date", nowIso);
+
+  // 2. Ambil event dari database dengan kueri status active, urutkan berdasarkan start_date ASC
   const { data: rawEvents } = await supabaseAdmin
     .from("events")
     .select(`
@@ -17,6 +35,7 @@ export default async function HomePage() {
       title,
       location,
       start_date,
+      end_date,
       poster_image,
       category:event_categories(name),
       profiles:created_by(
@@ -25,7 +44,7 @@ export default async function HomePage() {
       approvals:event_approvals(status, created_at)
     `)
     .eq("status", "active")
-    .order("created_at", { ascending: false });
+    .order("start_date", { ascending: true });
 
   // Cari status review terbaru untuk setiap event
   const getLatestApprovalStatus = (approvalsList: any[]) => {
@@ -36,10 +55,21 @@ export default async function HomePage() {
     return sorted[0].status;
   };
 
-  // Hanya tampilkan event yang aktif dan telah disetujui (approve), batas 3 terbaru
+  // Batas hari ini awal hari
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
+  // Hanya tampilkan event yang aktif dan telah disetujui (approve) yang berlangsung hari ini / masa depan, batas 6 terdekat
   const featuredEvents = (rawEvents || [])
-    .filter((event: any) => getLatestApprovalStatus(event.approvals || []) === "approve")
-    .slice(0, 3);
+    .filter((event: any) => {
+      const isApproved = getLatestApprovalStatus(event.approvals || []) === "approve";
+      if (!isApproved) return false;
+
+      const eventStart = new Date(event.start_date);
+      const eventEnd = event.end_date ? new Date(event.end_date) : eventStart;
+      return eventEnd >= todayStart;
+    })
+    .slice(0, 6);
 
   return (
     <PublicLayout>

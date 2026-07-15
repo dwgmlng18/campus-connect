@@ -28,6 +28,21 @@ export default function EventsTable({ initialEvents }: EventsTableProps) {
     newStatus: "active" | "inactive" | "deleted",
     currentStatus?: "active" | "inactive" | "deleted"
   ) => {
+    const event = initialEvents.find((e) => e.id === eventId);
+
+    if (newStatus === "active" && event) {
+      const eventStart = new Date(event.start_date);
+      const eventEnd = event.end_date ? new Date(event.end_date) : eventStart;
+      const now = new Date();
+
+      if (eventEnd < now) {
+        alert(
+          `Event "${event.title}" tidak dapat diaktifkan kembali karena waktu pelaksanaannya sudah berlalu (kedaluwarsa).\n\nSilakan edit dan ubah tanggal pelaksanaan kegiatan terlebih dahulu sebelum mengaktifkannya kembali.`
+        );
+        return;
+      }
+    }
+
     let confirmMsg = "";
     if (newStatus === "deleted") {
       confirmMsg = "Apakah Anda yakin ingin menghapus sementara event ini? Event akan dipindahkan ke daftar terhapus.";

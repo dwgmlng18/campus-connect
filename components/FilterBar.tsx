@@ -83,12 +83,14 @@ export default function FilterBar({ categories }: FilterBarProps) {
         <select
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition cursor-pointer font-medium"
         >
           <option value="">Kapan Saja</option>
           <option value="today">Hari Ini</option>
-          <option value="week">1 Minggu Ke Depan</option>
-          <option value="month">1 Bulan Ke Depan</option>
+          <option value="this_week">7 Hari ke Depan</option>
+          <option value="this_month">Bulan Ini</option>
+          <option value="upcoming">Akan Datang</option>
+          <option value="past">Sudah Terlewat</option>
         </select>
       </div>
 

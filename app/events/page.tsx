@@ -17,6 +17,24 @@ interface PageProps {
 export default async function EventsPage({ searchParams }: PageProps) {
   const supabaseAdmin = await createAdminClient();
 
+  const nowIso = new Date().toISOString();
+
+  // Auto-clean: Update status event yang sudah lewat menjadi 'inactive'
+  // Update jika end_date kurang dari sekarang
+  await supabaseAdmin
+    .from("events")
+    .update({ status: "inactive" })
+    .eq("status", "active")
+    .lt("end_date", nowIso);
+
+  // Update jika end_date null dan start_date kurang dari sekarang
+  await supabaseAdmin
+    .from("events")
+    .update({ status: "inactive" })
+    .eq("status", "active")
+    .is("end_date", null)
+    .lt("start_date", nowIso);
+
   // Resolve searchParams secara async (persyaratan Next.js 15+)
   const resolvedParams = await searchParams;
   const search = resolvedParams.search || "";
@@ -35,8 +53,10 @@ export default async function EventsPage({ searchParams }: PageProps) {
     .select(`
       id,
       title,
+      description,
       location,
       start_date,
+      end_date,
       poster_image,
       category:event_categories(name),
       profiles:created_by(
@@ -56,22 +76,6 @@ export default async function EventsPage({ searchParams }: PageProps) {
     query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
   }
 
-  // Filter Tanggal
-  const now = new Date();
-  if (dateFilter === "today") {
-    const startOfToday = new Date(now.setHours(0, 0, 0, 0)).toISOString();
-    const endOfToday = new Date(now.setHours(23, 59, 59, 999)).toISOString();
-    query = query.gte("start_date", startOfToday).lte("start_date", endOfToday);
-  } else if (dateFilter === "week") {
-    const startOfToday = new Date(now.setHours(0, 0, 0, 0)).toISOString();
-    const oneWeekLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
-    query = query.gte("start_date", startOfToday).lte("start_date", oneWeekLater);
-  } else if (dateFilter === "month") {
-    const startOfToday = new Date(now.setHours(0, 0, 0, 0)).toISOString();
-    const oneMonthLater = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
-    query = query.gte("start_date", startOfToday).lte("start_date", oneMonthLater);
-  }
-
   // Urutkan berdasarkan tanggal terdekat
   query = query.order("start_date", { ascending: true });
 
@@ -86,10 +90,44 @@ export default async function EventsPage({ searchParams }: PageProps) {
     return sorted[0].status;
   };
 
+  // Batas-batas filter tanggal
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
+  const todayEnd = new Date();
+  todayEnd.setHours(23, 59, 59, 999);
+
   // Hanya tampilkan event yang berstatus aktif dan disetujui
-  const events = (rawEvents || []).filter(
-    (event: any) => getLatestApprovalStatus(event.approvals || []) === "approve"
-  );
+  const events = (rawEvents || []).filter((event: any) => {
+    const isApproved = getLatestApprovalStatus(event.approvals || []) === "approve";
+    if (!isApproved) return false;
+
+    // Filter Tanggal
+    if (dateFilter) {
+      const eventStart = new Date(event.start_date);
+      const eventEnd = event.end_date ? new Date(event.end_date) : eventStart;
+
+      if (dateFilter === "today") {
+        if (!(eventStart <= todayEnd && eventEnd >= todayStart)) return false;
+      } else if (dateFilter === "this_week") {
+        const weekEnd = new Date(todayStart);
+        weekEnd.setDate(todayStart.getDate() + 7);
+        weekEnd.setHours(23, 59, 59, 999);
+        if (!(eventStart <= weekEnd && eventEnd >= todayStart)) return false;
+      } else if (dateFilter === "this_month") {
+        const monthStart = new Date(todayStart.getFullYear(), todayStart.getMonth(), 1);
+        const monthEnd = new Date(todayStart.getFullYear(), todayStart.getMonth() + 1, 0);
+        monthEnd.setHours(23, 59, 59, 999);
+        if (!(eventStart <= monthEnd && eventEnd >= monthStart)) return false;
+      } else if (dateFilter === "upcoming") {
+        if (!(eventEnd >= todayStart)) return false;
+      } else if (dateFilter === "past") {
+        if (!(eventEnd < todayStart)) return false;
+      }
+    }
+
+    return true;
+  });
 
   return (
     <PublicLayout>
