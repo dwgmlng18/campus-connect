@@ -22,7 +22,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: "Tanggal selesai kegiatan harus setelah tanggal mulai kegiatan." }, { status: 400 });
     }
 
-    // 1. Verifikasi pengguna yang terautentikasi
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -35,10 +34,8 @@ export async function POST(request: Request) {
       posterImageUrl = await uploadToCloudinary(posterFile);
     }
 
-    // Gunakan admin client untuk menulis data demi mem-bypass masalah RLS rekursif
     const supabaseAdmin = await createAdminClient();
 
-    // 2. Masukkan data ke tabel events
     const { data: event, error: eventError } = await supabaseAdmin
       .from("events")
       .insert({
@@ -50,7 +47,7 @@ export async function POST(request: Request) {
         start_date: new Date(startDateStr).toISOString(),
         end_date: endDateStr ? new Date(endDateStr).toISOString() : null,
         poster_image: posterImageUrl || null,
-        status: "active", // Default aktif secara operasional
+        status: "active",
       })
       .select("id")
       .single();
@@ -59,7 +56,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: `Gagal membuat event: ${eventError?.message}` }, { status: 400 });
     }
 
-    // 3. Masukkan status awal 'pending' ke tabel event_approvals
     const { error: approvalError } = await supabaseAdmin
       .from("event_approvals")
       .insert({

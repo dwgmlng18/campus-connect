@@ -128,15 +128,10 @@ export default function UsersList({ initialUsers }: UsersListProps) {
     }
   };
 
-  // Filter & Search Logic
   const filteredUsers = initialUsers.filter((user) => {
-    // 1. Role Filter
     if (roleFilter !== "all" && user.role !== roleFilter) return false;
-
-    // 2. Status Filter
     if (statusFilter !== "all" && user.status !== statusFilter) return false;
 
-    // 3. Search Term
     if (searchTerm.trim() !== "") {
       const term = searchTerm.toLowerCase();
       const matchEmail = user.email.toLowerCase().includes(term);

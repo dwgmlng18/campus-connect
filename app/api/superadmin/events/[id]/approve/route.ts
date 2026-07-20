@@ -21,7 +21,6 @@ export async function POST(request: Request, { params }: RouteParams) {
 
     const supabaseAdmin = await createAdminClient();
 
-    // Tambahkan record persetujuan baru
     const { error } = await supabaseAdmin
       .from("event_approvals")
       .insert({

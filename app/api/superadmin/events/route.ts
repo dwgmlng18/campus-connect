@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     const startDateStr = formData.get("start_date") as string;
     const endDateStr = formData.get("end_date") as string;
     const posterFile = formData.get("poster_image") as File;
-    const publisherId = formData.get("publisher_id") as string; // Diassign ke publisher terpilih
+    const publisherId = formData.get("publisher_id") as string;
 
     if (!title || !categoryId || !startDateStr || !publisherId) {
       return NextResponse.json({ success: false, message: "Judul, kategori, tanggal mulai, dan penyelenggara wajib diisi." }, { status: 400 });
@@ -26,7 +26,6 @@ export async function POST(request: Request) {
       posterImageUrl = await uploadToCloudinary(posterFile);
     }
 
-    // 1. Masukkan data ke tabel events
     const { data: event, error: eventError } = await supabaseAdmin
       .from("events")
       .insert({
@@ -47,7 +46,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: `Gagal membuat event: ${eventError?.message}` }, { status: 400 });
     }
 
-    // 2. Setujui secara otomatis karena dibuat oleh Superadmin
     const { error: approvalError } = await supabaseAdmin
       .from("event_approvals")
       .insert({

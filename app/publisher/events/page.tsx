@@ -18,7 +18,6 @@ export default async function PublisherEventsPage() {
 
   const nowIso = new Date().toISOString();
 
-  // Auto-clean: Update status event yang sudah lewat menjadi 'inactive'
   await supabaseAdmin
     .from("events")
     .update({ status: "inactive" })
@@ -32,7 +31,6 @@ export default async function PublisherEventsPage() {
     .is("end_date", null)
     .lt("start_date", nowIso);
 
-  // Ambil semua event milik publisher ini (menggunakan admin client untuk bypass RLS select loop)
   const { data: events = [] } = await supabaseAdmin
     .from("events")
     .select(`
@@ -47,7 +45,6 @@ export default async function PublisherEventsPage() {
     .eq("created_by", user.id)
     .order("created_at", { ascending: false });
 
-  // Helper untuk mendapatkan status approval terbaru
   const getLatestApproval = (approvalsList: any[]) => {
     if (!approvalsList || approvalsList.length === 0) return "pending";
     const sorted = [...approvalsList].sort(

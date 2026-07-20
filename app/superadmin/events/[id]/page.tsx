@@ -23,7 +23,6 @@ export default async function SuperadminEventDetailPage({ params }: PageProps) {
 
   const supabaseAdmin = await createAdminClient();
 
-  // Ambil detail event lengkap dengan profil penyelenggara & approvals
   const { data: rawEvent, error } = await supabaseAdmin
     .from("events")
     .select(`
@@ -51,7 +50,6 @@ export default async function SuperadminEventDetailPage({ params }: PageProps) {
 
   const event = rawEvent as any;
 
-  // Cari status review terbaru
   const getLatestApproval = (approvalsList: any[]) => {
     if (!approvalsList || approvalsList.length === 0) {
       return { status: "pending", note: null };

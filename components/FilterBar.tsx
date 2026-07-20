@@ -15,7 +15,6 @@ export default function FilterBar({ categories }: FilterBarProps) {
   const [category, setCategory] = useState(searchParams.get("category") || "");
   const [date, setDate] = useState(searchParams.get("date") || "");
 
-  // Sinkronisasi state lokal jika query params berubah (misalnya pencarian dari beranda)
   useEffect(() => {
     setSearch(searchParams.get("search") || "");
     setCategory(searchParams.get("category") || "");

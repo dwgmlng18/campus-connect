@@ -22,7 +22,6 @@ export async function POST(request: Request, { params }: RouteParams) {
       return NextResponse.json({ success: false, message: `Gagal menyetujui akun: ${error.message}` }, { status: 400 });
     }
 
-    // Ambil metadata auth user saat ini agar tidak ter-overwrite
     const { data: { user: authUser }, error: getUserError } = await supabaseAdmin.auth.admin.getUserById(publisherId);
     
     if (getUserError || !authUser) {
@@ -31,7 +30,6 @@ export async function POST(request: Request, { params }: RouteParams) {
 
     const currentMetadata = authUser.user_metadata || {};
 
-    // Perbarui metadata auth user dengan di-merge
     await supabaseAdmin.auth.admin.updateUserById(publisherId, {
       user_metadata: { ...currentMetadata, status: "approve" }
     });

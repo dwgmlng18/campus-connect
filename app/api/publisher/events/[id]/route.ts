@@ -30,7 +30,6 @@ export async function PUT(request: Request, { params }: RouteParams) {
       return NextResponse.json({ success: false, message: "Tanggal selesai kegiatan harus setelah tanggal mulai kegiatan." }, { status: 400 });
     }
 
-    // 1. Verifikasi pengguna yang terautentikasi
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -43,10 +42,8 @@ export async function PUT(request: Request, { params }: RouteParams) {
       posterImageUrl = await uploadToCloudinary(posterFile);
     }
 
-    // Gunakan admin client untuk menulis data demi mem-bypass RLS
     const supabaseAdmin = await createAdminClient();
 
-    // Ambil data event saat ini untuk membandingkan judul event
     const { data: currentEvent, error: fetchError } = await supabaseAdmin
       .from("events")
       .select("title")
@@ -71,13 +68,12 @@ export async function PUT(request: Request, { params }: RouteParams) {
         poster_image: posterImageUrl || null,
       })
       .eq("id", eventId)
-      .eq("created_by", user.id); // Keamanan: Pastikan hanya pemilik yang bisa mengubah
+      .eq("created_by", user.id);
 
     if (error) {
       return NextResponse.json({ success: false, message: `Gagal memperbarui event: ${error.message}` }, { status: 400 });
     }
 
-    // Jika judul/nama event diubah oleh publisher, kembalikan statusnya menjadi pending
     if (isTitleChanged) {
       const { error: approvalError } = await supabaseAdmin
         .from("event_approvals")
@@ -115,7 +111,6 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       return NextResponse.json({ success: false, message: "Status tidak valid." }, { status: 400 });
     }
 
-    // 1. Verifikasi pengguna yang terautentikasi
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -123,7 +118,6 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       return NextResponse.json({ success: false, message: "Sesi Anda telah berakhir." }, { status: 401 });
     }
 
-    // Gunakan admin client untuk menulis data demi mem-bypass RLS
     const supabaseAdmin = await createAdminClient();
 
     const { error } = await supabaseAdmin
@@ -159,7 +153,6 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     const resolvedParams = await params;
     const eventId = resolvedParams.id;
 
-    // 1. Verifikasi pengguna yang terautentikasi
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -167,14 +160,13 @@ export async function DELETE(request: Request, { params }: RouteParams) {
       return NextResponse.json({ success: false, message: "Sesi Anda telah berakhir." }, { status: 401 });
     }
 
-    // Gunakan admin client untuk bypass RLS
     const supabaseAdmin = await createAdminClient();
 
     const { error } = await supabaseAdmin
       .from("events")
       .delete()
       .eq("id", eventId)
-      .eq("created_by", user.id); // Keamanan: Pastikan hanya pemilik yang bisa menghapus
+      .eq("created_by", user.id);
 
     if (error) {
       return NextResponse.json({ success: false, message: `Gagal menghapus event secara permanen: ${error.message}` }, { status: 400 });

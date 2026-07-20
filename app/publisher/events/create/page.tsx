@@ -13,7 +13,6 @@ export default async function CreateEventPage() {
     redirect("/login");
   }
 
-  // Ambil data seluruh kategori event untuk pilihan select
   const { data: categories = [] } = await supabase
     .from("event_categories")
     .select("id, name")

@@ -13,7 +13,6 @@ export default async function PublisherProfilePage() {
     redirect("/login");
   }
 
-  // Ambil data profil instansi
   const { data: profile } = await supabase
     .from("profiles")
     .select("org_name, org_logo, org_abbreviation, phone, address")

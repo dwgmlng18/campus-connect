@@ -18,7 +18,6 @@ export default async function SuperadminEventsPage() {
 
   const nowIso = new Date().toISOString();
 
-  // Auto-clean: Update status event yang sudah lewat menjadi 'inactive'
   await supabaseAdmin
     .from("events")
     .update({ status: "inactive" })
@@ -32,7 +31,6 @@ export default async function SuperadminEventsPage() {
     .is("end_date", null)
     .lt("start_date", nowIso);
 
-  // Ambil data semua event beserta data instansi penyelenggara dan riwayat persetujuannya
   const { data: rawEvents = [] } = await supabaseAdmin
     .from("events")
     .select(`
@@ -46,7 +44,6 @@ export default async function SuperadminEventsPage() {
     `)
     .order("created_at", { ascending: false });
 
-  // Helper untuk mencari record persetujuan terbaru untuk setiap event
   const getLatestApproval = (approvalsList: any[]) => {
     if (!approvalsList || approvalsList.length === 0) {
       return { status: "pending", note: null };

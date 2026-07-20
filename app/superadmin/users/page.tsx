@@ -16,7 +16,6 @@ export default async function SuperadminUsersPage() {
 
   const supabaseAdmin = await createAdminClient();
 
-  // 1. Ambil data semua user di tabel public.users
   const { data: rawUsers = [] } = await supabaseAdmin
     .from("users")
     .select(`
@@ -28,7 +27,6 @@ export default async function SuperadminUsersPage() {
     `)
     .order("created_at", { ascending: false });
 
-  // 2. Ambil data email dari Supabase Auth
   let authUsers: any[] = [];
   try {
     const { data } = await supabaseAdmin.auth.admin.listUsers();
@@ -39,7 +37,6 @@ export default async function SuperadminUsersPage() {
 
   const emailMap = new Map(authUsers.map((u) => [u.id, u.email]));
 
-  // Map data untuk komponen UsersList
   const formattedUsers = (rawUsers || []).map((u: any) => {
     const profile = Array.isArray(u.profiles) ? u.profiles[0] : (u.profiles as any);
     return {

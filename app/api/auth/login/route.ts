@@ -5,12 +5,9 @@ export async function POST(request: Request) {
   try {
     const { email, password } = await request.json();
 
-    // 1. Validasi Bidang Wajib
     if (!email || !password) {
       return NextResponse.json({ success: false, message: "Email dan Password wajib diisi." }, { status: 400 });
     }
-
-    // 2. Validasi Format Email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return NextResponse.json({ success: false, message: "Format alamat email tidak valid (contoh: nama@univ.ac.id)." }, { status: 400 });
@@ -18,7 +15,6 @@ export async function POST(request: Request) {
 
     const supabase = await createClient();
 
-    // Lakukan login dengan Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -55,13 +51,10 @@ export async function POST(request: Request) {
               }
 
               if (dbUser.status === "approve") {
-                // Email belum konfirmasi di Auth tetapi status sudah disetujui di DB.
-                // Konfirmasi email secara otomatis agar user langsung dapat login.
                 await supabaseAdmin.auth.admin.updateUserById(targetUser.id, {
                   email_confirm: true,
                 });
 
-                // Coba masuk kembali
                 const { data: retryData, error: retryError } = await supabase.auth.signInWithPassword({
                   email,
                   password,
@@ -99,7 +92,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: "Terjadi masalah saat mengambil data pengguna." }, { status: 400 });
     }
 
-    // Periksa status akun di tabel public.users menggunakan admin client untuk menghindari restriksi RLS
     const supabaseAdmin = await createAdminClient();
     const { data: publicUser, error: userError } = await supabaseAdmin
       .from("users")
@@ -108,7 +100,6 @@ export async function POST(request: Request) {
       .single();
 
     if (userError || !publicUser) {
-      // Jika terjadi error membaca data publik, sign out paksa demi keamanan
       await supabase.auth.signOut();
       const errDetails = userError ? ` (Error: ${userError.code} - ${userError.message})` : " (Baris data tidak ditemukan)";
       return NextResponse.json({ 
@@ -117,7 +108,6 @@ export async function POST(request: Request) {
       }, { status: 400 });
     }
 
-    // Validasi status persetujuan
     if (publicUser.status === "pending") {
       await supabase.auth.signOut();
       return NextResponse.json({
@@ -137,7 +127,6 @@ export async function POST(request: Request) {
       }, { status: 400 });
     }
 
-    // Jika disetujui (approve), tentukan redirect berdasarkan role
     const role = publicUser.role;
     let redirectTo = "/";
     if (role === "superadmin") {

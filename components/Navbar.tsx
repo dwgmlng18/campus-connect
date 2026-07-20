@@ -5,7 +5,6 @@ import { createClient } from "@/lib/supabase/server";
 export default async function Navbar() {
   const supabase = await createClient();
   
-  // Ambil sesi user untuk menentukan tombol login/dashboard di Navbar
   const { data: { user } } = await supabase.auth.getUser();
   
   let publicUser = null;

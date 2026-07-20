@@ -17,7 +17,6 @@ export async function PUT(request: Request) {
       return NextResponse.json({ success: false, message: "Nama Instansi wajib diisi." }, { status: 400 });
     }
 
-    // 1. Verifikasi pengguna yang terautentikasi
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -33,7 +32,6 @@ export async function PUT(request: Request) {
       logoUrl = await uploadToCloudinary(logoFile);
     }
 
-    // Gunakan admin client untuk menulis data demi mem-bypass RLS
     const supabaseAdmin = await createAdminClient();
 
     const { error } = await supabaseAdmin

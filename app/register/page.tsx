@@ -14,7 +14,6 @@ export default function RegisterPage() {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Efek untuk scroll otomatis ke atas ketika ada pesan sukses/error
   React.useEffect(() => {
     if (error || success) {
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -25,7 +24,6 @@ export default function RegisterPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      // Validasi ukuran berkas (maks 5MB)
       if (file.size > 5 * 1024 * 1024) {
         setError("Ukuran logo maksimal adalah 5MB.");
         e.target.value = "";
@@ -33,7 +31,6 @@ export default function RegisterPage() {
         setLogoPreview(null);
         return;
       }
-      // Validasi format gambar
       if (!file.type.startsWith("image/")) {
         setError("Format berkas harus berupa gambar.");
         e.target.value = "";
@@ -44,7 +41,6 @@ export default function RegisterPage() {
       setError(null);
       setLogoName(file.name);
       
-      // Buat URL blob preview lokal
       const previewUrl = URL.createObjectURL(file);
       setLogoPreview(previewUrl);
     }
@@ -75,10 +71,8 @@ export default function RegisterPage() {
         const res = await response.json();
         if (res.success) {
           setSuccess(res.message);
-          // Reset form
           (e.target as HTMLFormElement).reset();
           handleCancelLogo();
-          // Redirect ke halaman login setelah 2 detik
           setTimeout(() => {
             router.push("/login");
           }, 2000);

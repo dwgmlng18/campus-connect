@@ -17,13 +17,10 @@ export default async function EditEventPage({ params }: PageProps) {
     redirect("/login");
   }
 
-  // Resolve params secara async (persyaratan Next.js 15+)
   const resolvedParams = await params;
   const id = resolvedParams.id;
 
   const supabaseAdmin = await createAdminClient();
-
-  // 1. Ambil data event menggunakan admin client (bypass RLS select loop)
   const { data: event, error: eventError } = await supabaseAdmin
     .from("events")
     .select("id, title, description, category_id, location, start_date, end_date, poster_image, created_by")
@@ -34,12 +31,9 @@ export default async function EditEventPage({ params }: PageProps) {
     notFound();
   }
 
-  // Cek otorisasi kepemilikan
   if (event.created_by !== user.id) {
     redirect("/publisher/events");
   }
-
-  // 2. Ambil data seluruh kategori untuk pilihan select
   const { data: categories = [] } = await supabase
     .from("event_categories")
     .select("id, name")

@@ -22,7 +22,6 @@ export default async function SuperadminEditEventPage({ params }: PageProps) {
 
   const supabaseAdmin = await createAdminClient();
 
-  // 1. Ambil data event menggunakan admin client (bypass RLS)
   const { data: event, error: eventError } = await supabaseAdmin
     .from("events")
     .select("id, title, description, category_id, location, start_date, end_date, poster_image, created_by")
@@ -33,13 +32,10 @@ export default async function SuperadminEditEventPage({ params }: PageProps) {
     notFound();
   }
 
-  // 2. Ambil data kategori event
   const { data: categories = [] } = await supabaseAdmin
     .from("event_categories")
     .select("id, name")
     .order("name", { ascending: true });
-
-  // 3. Ambil daftar publisher yang sudah disetujui (status = approve)
   const { data: rawPublishers = [] } = await supabaseAdmin
     .from("users")
     .select(`

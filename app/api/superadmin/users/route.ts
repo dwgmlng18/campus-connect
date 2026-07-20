@@ -10,7 +10,6 @@ export async function POST(request: Request) {
     const password = formData.get("password") as string;
     const role = formData.get("role") as "superadmin" | "publisher";
     
-    // Bidang spesifik Publisher
     const orgName = formData.get("org_name") as string;
     const orgAbbreviation = formData.get("org_abbreviation") as string;
     const phone = formData.get("phone") as string;
@@ -36,14 +35,13 @@ export async function POST(request: Request) {
       }
     }
 
-    // Daftarkan ke auth
     const { data, error } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
       user_metadata: {
         role,
-        status: "approve", // langsung aktif disetujui
+        status: "approve",
         org_name: finalOrgName,
         org_logo: orgLogoUrl || null,
         org_abbreviation: role === "publisher" ? orgAbbreviation : null,
@@ -61,7 +59,6 @@ export async function POST(request: Request) {
     }
 
     if (data.user) {
-      // Set status ke approve di tabel public.users
       await supabaseAdmin
         .from("users")
         .update({ status: "approve" })

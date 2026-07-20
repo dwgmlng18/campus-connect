@@ -2,14 +2,13 @@ import React from "react";
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/server";
 
-export const revalidate = 0; // Data statistik harus selalu real-time
+export const revalidate = 0;
 
 export default async function SuperadminDashboardPage() {
   const supabaseAdmin = await createAdminClient();
 
   const nowIso = new Date().toISOString();
 
-  // Auto-clean: Update status event yang sudah lewat menjadi 'inactive'
   await supabaseAdmin
     .from("events")
     .update({ status: "inactive" })
@@ -23,7 +22,6 @@ export default async function SuperadminDashboardPage() {
     .is("end_date", null)
     .lt("start_date", nowIso);
 
-  // 1. Ambil data publisher
   const { data: users = [] } = await supabaseAdmin
     .from("users")
     .select("id, role, status, created_at, profiles(org_name, org_abbreviation)");
@@ -32,12 +30,9 @@ export default async function SuperadminDashboardPage() {
   const totalPublishers = publishers.length;
   const pendingPublishers = publishers.filter((u: any) => u.status === "pending").length;
 
-  // 2. Ambil data kategori
   const { count: totalCategories = 0 } = await supabaseAdmin
     .from("event_categories")
     .select("id", { count: "exact", head: true });
-
-  // 3. Ambil data event
   const { data: events = [] } = await supabaseAdmin
     .from("events")
     .select(`
@@ -48,7 +43,6 @@ export default async function SuperadminDashboardPage() {
       approvals:event_approvals(status, created_at)
     `);
 
-  // Helper untuk mencari status persetujuan terbaru
   const getLatestApproval = (approvalsList: any[]) => {
     if (!approvalsList || approvalsList.length === 0) return "pending";
     const sorted = [...approvalsList].sort(
@@ -70,7 +64,6 @@ export default async function SuperadminDashboardPage() {
     };
   });
 
-  // Ambil list pending untuk quick review
   const pendingPublisherList = publishers
     .filter((p: any) => p.status === "pending")
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())

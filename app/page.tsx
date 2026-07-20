@@ -3,23 +3,19 @@ import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/server";
 import PublicLayout from "@/components/PublicLayout";
 
-export const revalidate = 0; // Disable caching for real-time updates
+export const revalidate = 0;
 
 export default async function HomePage() {
-  // Gunakan admin client untuk bypass RLS select loop pada data publik
   const supabaseAdmin = await createAdminClient();
 
   const nowIso = new Date().toISOString();
 
-  // 1. Auto-clean: Update status event yang sudah lewat menjadi 'inactive'
-  // Update jika end_date kurang dari sekarang
   await supabaseAdmin
     .from("events")
     .update({ status: "inactive" })
     .eq("status", "active")
     .lt("end_date", nowIso);
 
-  // Update jika end_date null dan start_date kurang dari sekarang
   await supabaseAdmin
     .from("events")
     .update({ status: "inactive" })
@@ -27,7 +23,6 @@ export default async function HomePage() {
     .is("end_date", null)
     .lt("start_date", nowIso);
 
-  // 2. Ambil event dari database dengan kueri status active, urutkan berdasarkan start_date ASC
   const { data: rawEvents } = await supabaseAdmin
     .from("events")
     .select(`
@@ -59,7 +54,6 @@ export default async function HomePage() {
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
 
-  // Hanya tampilkan event yang aktif dan telah disetujui (approve) yang berlangsung hari ini / masa depan, batas 6 terdekat
   const featuredEvents = (rawEvents || [])
     .filter((event: any) => {
       const isApproved = getLatestApprovalStatus(event.approvals || []) === "approve";

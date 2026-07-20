@@ -15,7 +15,6 @@ export default async function SuperadminCategoriesPage() {
 
   const supabaseAdmin = await createAdminClient();
 
-  // Ambil semua kategori event terdaftar di database
   const { data: categories = [] } = await supabaseAdmin
     .from("event_categories")
     .select("id, name")

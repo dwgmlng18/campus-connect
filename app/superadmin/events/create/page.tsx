@@ -15,13 +15,10 @@ export default async function SuperadminCreateEventPage() {
 
   const supabaseAdmin = await createAdminClient();
 
-  // 1. Ambil data kategori event
   const { data: categories = [] } = await supabaseAdmin
     .from("event_categories")
     .select("id, name")
     .order("name", { ascending: true });
-
-  // 2. Ambil daftar publisher yang sudah disetujui (status = approve)
   const { data: rawPublishers = [] } = await supabaseAdmin
     .from("users")
     .select(`

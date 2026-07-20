@@ -22,7 +22,6 @@ export default async function SuperadminEditUserPage({ params }: PageProps) {
 
   const supabaseAdmin = await createAdminClient();
 
-  // 1. Ambil data status, role, dan reject_reason dari public.users
   const { data: userData, error: userError } = await supabaseAdmin
     .from("users")
     .select("id, role, status, reject_reason")
@@ -32,15 +31,12 @@ export default async function SuperadminEditUserPage({ params }: PageProps) {
   if (userError || !userData) {
     notFound();
   }
-
-  // 2. Ambil data profil dari public.profiles
   const { data: profileData } = await supabaseAdmin
     .from("profiles")
     .select("org_name, org_logo, org_abbreviation, phone, address")
     .eq("user_id", id)
     .single();
 
-  // 3. Ambil data email dari Supabase Auth
   let email = "Tidak diketahui";
   try {
     const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(id);

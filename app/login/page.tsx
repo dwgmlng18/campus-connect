@@ -12,7 +12,6 @@ function LoginContent() {
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Efek untuk memetakan error dari middleware query param
   React.useEffect(() => {
     if (errorParam) {
       if (errorParam === "unauthorized_pending") {
@@ -25,7 +24,6 @@ function LoginContent() {
     }
   }, [errorParam]);
 
-  // Efek untuk scroll otomatis ke atas ketika ada pesan error
   React.useEffect(() => {
     if (error) {
       window.scrollTo({ top: 0, behavior: "smooth" });

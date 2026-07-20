@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import PublicLayout from "@/components/PublicLayout";
 
-export const revalidate = 0; // Memastikan data real-time saat diakses
+export const revalidate = 0;
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -13,13 +13,10 @@ interface PageProps {
 export default async function EventDetailPage({ params }: PageProps) {
   const supabase = await createClient();
 
-  // Resolve params secara async (persyaratan Next.js 15+)
   const resolvedParams = await params;
   const id = resolvedParams.id;
 
   const supabaseAdmin = await createAdminClient();
-
-  // Ambil detail event dengan admin client (bypassing RLS select loop)
   const { data: rawEvent, error } = await supabaseAdmin
     .from("events")
     .select(`
@@ -46,7 +43,6 @@ export default async function EventDetailPage({ params }: PageProps) {
 
   const event = rawEvent as any;
 
-  // Cari status review terbaru
   const getLatestApproval = (approvalsList: any[]) => {
     if (!approvalsList || approvalsList.length === 0) {
       return { status: "pending", note: null };
@@ -60,7 +56,6 @@ export default async function EventDetailPage({ params }: PageProps) {
   const approvalInfo = getLatestApproval(event.approvals || []);
   const isApproved = approvalInfo.status === "approve";
 
-  // Verifikasi otorisasi pengguna saat ini (untuk preview pending/rejected event)
   const { data: { user } } = await supabase.auth.getUser();
   let userRole = null;
   if (user) {
@@ -75,7 +70,6 @@ export default async function EventDetailPage({ params }: PageProps) {
   const isOwner = user && event.created_by === user.id;
   const isAdmin = userRole === "superadmin";
 
-  // Hanya perbolehkan akses ke event tidak disetujui jika viewer adalah pembuat event atau superadmin
   if (!isApproved && !isOwner && !isAdmin) {
     notFound();
   }

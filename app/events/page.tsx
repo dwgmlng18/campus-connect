@@ -19,15 +19,12 @@ export default async function EventsPage({ searchParams }: PageProps) {
 
   const nowIso = new Date().toISOString();
 
-  // Auto-clean: Update status event yang sudah lewat menjadi 'inactive'
-  // Update jika end_date kurang dari sekarang
   await supabaseAdmin
     .from("events")
     .update({ status: "inactive" })
     .eq("status", "active")
     .lt("end_date", nowIso);
 
-  // Update jika end_date null dan start_date kurang dari sekarang
   await supabaseAdmin
     .from("events")
     .update({ status: "inactive" })
@@ -35,19 +32,14 @@ export default async function EventsPage({ searchParams }: PageProps) {
     .is("end_date", null)
     .lt("start_date", nowIso);
 
-  // Resolve searchParams secara async (persyaratan Next.js 15+)
   const resolvedParams = await searchParams;
   const search = resolvedParams.search || "";
   const category = resolvedParams.category || "";
   const dateFilter = resolvedParams.date || "";
-
-  // 1. Ambil daftar kategori untuk filter dropdown menggunakan admin client (bypass RLS)
   const { data: categories = [] } = await supabaseAdmin
     .from("event_categories")
     .select("id, name")
     .order("name", { ascending: true });
-
-  // 2. Siapkan query untuk data event menggunakan admin client (bypass RLS)
   let query = supabaseAdmin
     .from("events")
     .select(`
@@ -66,22 +58,15 @@ export default async function EventsPage({ searchParams }: PageProps) {
     `)
     .eq("status", "active");
 
-  // Filter Kategori
   if (category) {
     query = query.eq("category_id", category);
   }
-
-  // Filter Pencarian Judul & Deskripsi
   if (search) {
     query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
   }
-
-  // Urutkan berdasarkan tanggal terdekat
   query = query.order("start_date", { ascending: true });
-
   const { data: rawEvents = [] } = await query;
 
-  // Cari status review terbaru untuk setiap event
   const getLatestApprovalStatus = (approvalsList: any[]) => {
     if (!approvalsList || approvalsList.length === 0) return "pending";
     const sorted = [...approvalsList].sort(
@@ -90,19 +75,15 @@ export default async function EventsPage({ searchParams }: PageProps) {
     return sorted[0].status;
   };
 
-  // Batas-batas filter tanggal
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
 
   const todayEnd = new Date();
   todayEnd.setHours(23, 59, 59, 999);
 
-  // Hanya tampilkan event yang berstatus aktif dan disetujui
   const events = (rawEvents || []).filter((event: any) => {
     const isApproved = getLatestApprovalStatus(event.approvals || []) === "approve";
     if (!isApproved) return false;
-
-    // Filter Tanggal
     if (dateFilter) {
       const eventStart = new Date(event.start_date);
       const eventEnd = event.end_date ? new Date(event.end_date) : eventStart;

@@ -15,7 +15,6 @@ interface DashboardLayoutWrapperProps {
 export default function PublisherLayoutWrapper({ profile, children }: DashboardLayoutWrapperProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // Muat state preferensi dari localStorage saat client-side hydration
   useEffect(() => {
     const saved = localStorage.getItem("publisher_sidebar_collapsed");
     if (saved === "true") {

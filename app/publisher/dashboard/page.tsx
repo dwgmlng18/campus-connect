@@ -17,7 +17,6 @@ export default async function PublisherDashboardPage() {
 
   const nowIso = new Date().toISOString();
 
-  // Auto-clean: Update status event yang sudah lewat menjadi 'inactive'
   await supabaseAdmin
     .from("events")
     .update({ status: "inactive" })
@@ -31,14 +30,12 @@ export default async function PublisherDashboardPage() {
     .is("end_date", null)
     .lt("start_date", nowIso);
 
-  // 1. Ambil nama instansi untuk ucapan selamat datang via admin client
   const { data: profile } = await supabaseAdmin
     .from("profiles")
     .select("org_name")
     .eq("user_id", user.id)
     .single();
 
-  // 2. Ambil seluruh event milik publisher ini beserta riwayat approvals-nya via admin client
   const { data: events = [] } = await supabaseAdmin
     .from("events")
     .select(`
@@ -51,7 +48,6 @@ export default async function PublisherDashboardPage() {
     `)
     .eq("created_by", user.id);
 
-  // Helper untuk mendapatkan status approval terbaru untuk setiap event
   const getLatestApproval = (approvalsList: any[]) => {
     if (!approvalsList || approvalsList.length === 0) return "pending";
     const sorted = [...approvalsList].sort(
@@ -60,7 +56,6 @@ export default async function PublisherDashboardPage() {
     return sorted[0].status;
   };
 
-  // Hitung statistik
   const totalEvents = events?.length || 0;
   let approvedEventsCount = 0;
   let pendingEventsCount = 0;
@@ -78,7 +73,6 @@ export default async function PublisherDashboardPage() {
     };
   });
 
-  // Urutkan event terbaru berdasarkan tanggal dibuat (limit 5)
   const recentEvents = [...eventsWithApprovalStatus]
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 5);
@@ -206,7 +200,6 @@ export default async function PublisherDashboardPage() {
                     year: "numeric",
                   });
 
-                  // Label badge persetujuan (approval_status)
                   const approvalStyles = {
                     approve: "bg-accent-50 text-accent-600 dark:bg-accent-950/30 dark:text-accent-400 border-accent-200 dark:border-accent-850",
                     pending: "bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-500 border-amber-200 dark:border-amber-850",
@@ -219,7 +212,6 @@ export default async function PublisherDashboardPage() {
                     reject: "Ditolak",
                   };
 
-                  // Label badge operasional (status)
                   const operationalStyles = {
                     active: "bg-accent-50 text-accent-600 dark:bg-accent-950/30 dark:text-accent-400 border-accent-200 dark:border-accent-850",
                     inactive: "bg-slate-100 text-slate-600 dark:bg-slate-950/50 dark:text-slate-400 border-slate-200 dark:border-slate-850",

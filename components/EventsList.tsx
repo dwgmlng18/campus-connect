@@ -127,9 +127,7 @@ export default function EventsList({ initialEvents }: EventsListProps) {
     }
   };
 
-  // Filtering Logic
   const filteredEvents = initialEvents.filter((event) => {
-    // 1. Search term
     if (searchTerm.trim() !== "") {
       const term = searchTerm.toLowerCase();
       const matchTitle = event.title.toLowerCase().includes(term);
@@ -137,12 +135,10 @@ export default function EventsList({ initialEvents }: EventsListProps) {
       if (!matchTitle && !matchOrg) return false;
     }
 
-    // 2. Status filter
     if (statusFilter !== "all" && event.approval_status !== statusFilter) {
       return false;
     }
 
-    // 3. Date filter
     if (dateFilter !== "all") {
       const eventStart = new Date(event.start_date);
       const eventEnd = event.end_date ? new Date(event.end_date) : eventStart;

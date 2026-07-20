@@ -13,29 +13,22 @@ export async function POST(request: Request) {
     const address = formData.get("address") as string;
     const logoFile = formData.get("org_logo") as File;
 
-    // 1. Validasi Bidang Wajib
     if (!email || !password || !orgName) {
       return NextResponse.json({ success: false, message: "Email, Password, dan Nama Instansi wajib diisi." }, { status: 400 });
     }
 
-    // 2. Validasi Format Email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return NextResponse.json({ success: false, message: "Format alamat email tidak valid (contoh: nama@univ.ac.id)." }, { status: 400 });
     }
-
-    // 3. Validasi Panjang Password
     if (password.length < 6) {
       return NextResponse.json({ success: false, message: "Password minimal harus memiliki 6 karakter." }, { status: 400 });
     }
 
-    // 4. Validasi Logo (Jika ada)
     if (logoFile && logoFile.size > 0) {
-      // Validasi Ukuran (Maks 5MB)
       if (logoFile.size > 5 * 1024 * 1024) {
         return NextResponse.json({ success: false, message: "Ukuran berkas logo instansi melebihi batas maksimal 5MB." }, { status: 400 });
       }
-      // Validasi Tipe Berkas Gambar
       const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
       if (!allowedTypes.includes(logoFile.type)) {
         return NextResponse.json({ success: false, message: "Format logo instansi harus berupa gambar (JPG, PNG, WEBP, atau GIF)." }, { status: 400 });
@@ -43,19 +36,17 @@ export async function POST(request: Request) {
     }
 
     let orgLogoUrl = "";
-    
-    // Unggah logo ke Cloudinary jika dilampirkan
+
     if (logoFile && logoFile.size > 0) {
       orgLogoUrl = await uploadToCloudinary(logoFile);
     }
 
     const supabaseAdmin = await createAdminClient();
 
-    // Mendaftarkan user ke Supabase Auth secara otomatis terkonfirmasi
     const { data, error } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      email_confirm: true, // Mengonfirmasi email secara instan
+      email_confirm: true,
       user_metadata: {
         role: "publisher",
         status: "pending",

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import PublisherLayoutWrapper from "@/components/PublisherLayoutWrapper";
 
-export const revalidate = 0; // Memastikan data user selalu sinkron
+export const revalidate = 0;
 
 export default async function PublisherLayout({
   children,
@@ -13,12 +13,9 @@ export default async function PublisherLayout({
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  // Jika belum login, alihkan ke login
   if (!user) {
     redirect("/login");
   }
-
-  // Ambil detail profil untuk Sidebar
   const { data: profile } = await supabase
     .from("profiles")
     .select("org_name, org_logo, org_abbreviation")

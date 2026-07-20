@@ -37,7 +37,6 @@ export async function PUT(request: Request, { params }: RouteParams) {
       logoUrl = await uploadToCloudinary(logoFile);
     }
 
-    // 1. Update tabel public.profiles
     const { error: profileError } = await supabaseAdmin
       .from("profiles")
       .update({
@@ -53,7 +52,6 @@ export async function PUT(request: Request, { params }: RouteParams) {
       return NextResponse.json({ success: false, message: `Gagal memperbarui profil: ${profileError.message}` }, { status: 400 });
     }
 
-    // 2. Update status di tabel public.users
     const { error: userError } = await supabaseAdmin
       .from("users")
       .update({
@@ -66,7 +64,6 @@ export async function PUT(request: Request, { params }: RouteParams) {
       return NextResponse.json({ success: false, message: `Gagal memperbarui status user: ${userError.message}` }, { status: 400 });
     }
 
-    // 3. Sinkronisasikan metadata auth user dan update password jika disediakan
     const updateParams: any = {
       user_metadata: {
         status,
@@ -106,11 +103,9 @@ export async function DELETE(request: Request, { params }: RouteParams) {
 
     const supabaseAdmin = await createAdminClient();
 
-    // Hapus dari auth (akan men-cascade profile & users jika FK di set cascade)
     const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId);
 
     if (authError) {
-      // Hapus manual jika cascade gagal
       await supabaseAdmin.from("profiles").delete().eq("user_id", userId);
       const { error: userError } = await supabaseAdmin.from("users").delete().eq("id", userId);
       

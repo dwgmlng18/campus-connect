@@ -72,7 +72,6 @@ export async function DELETE(request: Request, { params }: RouteParams) {
 
     const supabaseAdmin = await createAdminClient();
     
-    // Hapus event (riwayat approvals akan otomatis cascade terhapus karena referensi cascade di schema)
     const { error } = await supabaseAdmin
       .from("events")
       .delete()
